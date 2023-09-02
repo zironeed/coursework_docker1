@@ -1,0 +1,80 @@
+version: '3'
+
+services:
+  db:
+    image: postgres:14-alpine3.17
+    container_name: db_app
+    env_file: /coursework_drf/.env
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ 'CMD-SHELL', 'pg_isready' ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.0.2-alpine
+    container_name: redis_app
+    command: redis-server --save 20 1 --loglevel warning
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./data/cache:/data
+
+  app:
+    build:
+      context: ./
+      dockerfile: /docker/Dockerfile
+    image: app
+    container_name: app_container
+    command: bash -c "
+      python manage.py makemigrations
+      && python manage.py migrate
+      && python manage.py create_users
+      && python manage.py runserver 0.0.0.0:8000
+      "
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    env_file: /coursework_drf/.env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../:/config
+
+  celery-worker:
+    image: app
+    container_name: celery-worker
+    restart: always
+    env_file: /coursework_drf/.env
+    volumes:
+      - ../:/var/www/app/worker
+    depends_on:
+      redis:
+        condition: service_started
+      db:
+        condition: service_healthy
+      app:
+        condition: service_started
+    command: celery -A config worker -l INFO
+
+  celery-beat:
+    image: app
+    container_name: celery-beat
+    restart: always
+    env_file: /coursework_drf/.env
+    volumes:
+      - ../:/var/www/app/beat
+    depends_on:
+      celery-worker:
+        condition: service_started
+      redis:
+        condition: service_started
+      app:
+        condition: service_started
+    command: celery -A config beat -l info -S django
