@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from spa_app.models import Habit
 from spa_app.serializers import HabitSerializer
 from spa_app.paginators import HabitPagination
-from coursework_drf.permissions import IsOwner, CanDelete
+from permissions import IsOwner, CanDelete
 
 
 class HabitPublishListView(ListAPIView):
