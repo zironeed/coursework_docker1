@@ -5,6 +5,7 @@ services:
     image: postgres:14-alpine3.17
     container_name: db_app
     env_file: ./coursework_drf/.env
+    user: postgres
     volumes:
       - ./data/db:/var/lib/postgresql/data
     ports:

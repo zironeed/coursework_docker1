@@ -8,6 +8,11 @@ tg_name = 'AdolfNotHitler'
 class Command(BaseCommand):
     """A command for easily creating a user and superuser"""
     def handle(self, *args, **options):
+        check_admin = User.objects.filter(email='admin@gmail.com')
+
+        if check_admin:
+            return 'We already have users!'
+
         admin = User.objects.create(
             email='admin@gmail.com',
             first_name='admin',
